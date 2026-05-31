@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>SA Cyber Social</title>
+
+<style>
+body{
+    margin:0;
+    font-family: monospace;
+    background:#000;
+    color:#00ff66;
+}
+
+header{
+    text-align:center;
+    padding:15px;
+    font-size:24px;
+    border-bottom:1px solid #00ff66;
+    text-shadow:0 0 10px #00ff66;
+}
+
+.container{
+    width:92%;
+    max-width:650px;
+    margin:auto;
+    padding:10px;
+}
+
+.card{
+    border:1px solid #00ff66;
+    padding:10px;
+    margin-top:10px;
+    background:#050505;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    background:black;
+    border:1px solid #00ff66;
+    color:#00ff66;
+    outline:none;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    background:#00ff66;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{background:#fff;}
+
+.post{
+    border:1px solid #00ff66;
+    padding:10px;
+    margin-top:10px;
+}
+
+.post img{
+    width:100%;
+    margin-top:10px;
+}
+
+.comment{
+    color:#fff;
+    font-size:13px;
+    margin-top:3px;
+}
+
+.like{
+    cursor:pointer;
+    color:#fff;
+    margin-top:5px;
+}
+
+.hidden{display:none;}
+</style>
+</head>
+
+<body>
+
+<header>🧠 SA CYBER SOCIAL</header>
+
+<div class="container">
+
+<!-- REGISTER -->
+<div id="regBox" class="card">
+    <h3>ثبت نام</h3>
+    <input id="name" placeholder="نام *">
+    <input id="lastname" placeholder="نام خانوادگی *">
+    <input id="email" placeholder="ایمیل *">
+    <input id="bio" placeholder="بیو (اختیاری)">
+    <input id="pass" type="password" placeholder="رمز عبور *">
+    <button onclick="register()">ساخت حساب</button>
+</div>
+
+<!-- LOGIN -->
+<div id="loginBox" class="card hidden">
+    <h3>ورود</h3>
+    <input id="loginPass" type="password" placeholder="رمز">
+    <button onclick="login()">ورود</button>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+    <div class="card" id="profileBox"></div>
+
+    <div class="card">
+        <h3>پست جدید</h3>
+        <input id="imgUrl" placeholder="لینک عکس (اختیاری)">
+        <textarea id="postText" placeholder="متن پست..."></textarea>
+        <button onclick="addPost()">ارسال پست</button>
+    </div>
+
+    <div id="posts"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let currentUser = null;
+
+/* CLEAN */
+function clean(s){
+    if(!s) return "";
+    return s.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* REGISTER */
+function register(){
+
+    if(!name.value || !lastname.value || !email.value || !pass.value){
+        alert("❌ همه فیلدهای ضروری باید پر شوند!");
+        return;
+    }
+
+    let user = {
+        name: clean(name.value),
+        lastname: clean(lastname.value),
+        email: clean(email.value),
+        bio: bio.value ? clean(bio.value) : "",
+        pass: pass.value
+    };
+
+    localStorage.setItem("user", JSON.stringify(user));
+
+    alert("✅ ثبت نام موفق");
+
+    regBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
+}
+
+/* LOGIN */
+function login(){
+
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    if(!user){
+        alert("اول ثبت نام کن");
+        return;
+    }
+
+    if(loginPass.value === user.pass){
+
+        currentUser = user;
+
+        loginBox.classList.add("hidden");
+        app.classList.remove("hidden");
+
+        profileBox.innerHTML = `
+            👤 ${user.name} ${user.lastname}<br>
+            📧 ${user.email}<br>
+            🧾 ${user.bio || "بدون بیو"}
+        `;
+
+        loadPosts();
+
+    }else{
+        alert("رمز اشتباه است");
+    }
+}
+
+/* ADD POST */
+function addPost(){
+
+    if(!postText.value && !imgUrl.value){
+        alert("پست خالی نیست!");
+        return;
+    }
+
+    let posts = JSON.parse(localStorage.getItem("posts") || "[]");
+
+    posts.push({
+        text: clean(postText.value),
+        img: imgUrl.value || "",
+        author: currentUser.name,
+        likes: 0,
+        comments: []
+    });
+
+    localStorage.setItem("posts", JSON.stringify(posts));
+
+    postText.value = "";
+    imgUrl.value = "";
+
+    loadPosts();
+}
+
+/* LIKE */
+function likePost(i){
+
+    let posts = JSON.parse(localStorage.getItem("posts") || "[]");
+
+    posts[i].likes++;
+
+    localStorage.setItem("posts", JSON.stringify(posts));
+
+    loadPosts();
+}
+
+/* COMMENT */
+function addComment(i){
+
+    let posts = JSON.parse(localStorage.getItem("posts") || "[]");
+    let input = document.getElementById("c"+i);
+
+    if(!input.value) return;
+
+    posts[i].comments.push(clean(input.value));
+
+    localStorage.setItem("posts", JSON.stringify(posts));
+
+    loadPosts();
+}
+
+/* LOAD POSTS */
+function loadPosts(){
+
+    let posts = JSON.parse(localStorage.getItem("posts") || "[]");
+
+    postsDiv.innerHTML = "";
+
+    posts.forEach((p,i)=>{
+
+        let img = p.img ? `<img src="${p.img}">` : "";
+
+        let comments = "";
+        p.comments.forEach(c=>{
+            comments += `<div class="comment">💬 ${c}</div>`;
+        });
+
+        let div = document.createElement("div");
+        div.className = "post";
+
+        div.innerHTML = `
+            <b>👤 ${p.author}</b><br>
+            ${p.text}
+            ${img}
+            <br>
+            ❤️ ${p.likes}
+            <div class="like" onclick="likePost(${i})">لایک</div>
+
+            <input id="c${i}" placeholder="کامنت...">
+            <button onclick="addComment(${i})">ارسال کامنت</button>
+
+            ${comments}
+        `;
+
+        postsDiv.appendChild(div);
+    });
+}
+
+</script>
+
+</body>
+</html>
